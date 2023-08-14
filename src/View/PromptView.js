@@ -1,53 +1,82 @@
-import { rl } from "../utils";
+import { readLineInterface } from "../utils";
 
-export default class PromptView {
-  static MESSAGES = Object.freeze({
-    INITIAL_GUIDE:
+export const PromptView = (function () {
+  const GUIDE_MESSAGES = Object.freeze({
+    CAR_NAMES_INPUT:
       "경주할 자동차 이름을 입력하세요(이름은 쉼표(,) 기준으로 구분).\n",
-    RESULT_GUIDE: "실행 결과",
+    TOTAL_ROUNDS_INPUT: "시도할 회수는 몇회인가요?\n",
+    RESULT: "실행 결과",
   });
 
-  addEventHandlerToPrompt(cbFunc) {
-    rl.question(PromptView.MESSAGES.INITIAL_GUIDE, (input) => {
-      cbFunc(input);
-      rl.close();
+  async function readLineFromPrompt(guideMessage) {
+    return new Promise((resolve) => {
+      readLineInterface.question(guideMessage, resolve);
     });
   }
 
-  #log(...rest) {
-    return console.log(...rest);
+  async function getInputsThen(cbFunc) {
+    const carNamesInput = await readLineFromPrompt(
+      GUIDE_MESSAGES.CAR_NAMES_INPUT
+    );
+    const roundsInput = await readLineFromPrompt(
+      GUIDE_MESSAGES.TOTAL_ROUNDS_INPUT
+    );
+
+    cbFunc(carNamesInput, roundsInput);
   }
 
-  #logDivider() {
-    const DIVIDER_SYMBOL = "";
-    this.#log(DIVIDER_SYMBOL);
+  function close() {
+    readLineInterface.close();
   }
 
-  #logCarStatus(car) {
-    this.#log(`${car.name} : ${"-".repeat(car.position)}`);
+  const log = console.log;
+
+  function logDivider() {
+    log("");
   }
 
-  logErrorMessage(errorMsg) {
-    this.#log("[ERROR]", errorMsg);
+  function logResultGuideMessage() {
+    logDivider();
+
+    log(GUIDE_MESSAGES.RESULT);
   }
 
-  logResultGuideMessage() {
-    this.#logDivider();
-
-    this.#log(PromptView.MESSAGES.RESULT_GUIDE);
+  function logCarRecord(car) {
+    log(`${car.name} : ${"-".repeat(car.position)}`);
   }
 
-  logRoundStatus(cars) {
+  function logRoundRecord(cars) {
     cars.forEach((car) => {
-      this.#logCarStatus(car);
+      logCarRecord(car);
     });
 
-    this.#logDivider();
+    logDivider();
   }
 
-  logWinners(winners) {
-    const winnerNames = winners.map((winner) => winner.name);
-
-    this.#log(winnerNames.join(", ") + "가 최종 우승했습니다.");
+  function logWinnerNames(winnerNames) {
+    log(winnerNames.join(", ") + "가 최종 우승했습니다.");
   }
-}
+
+  function logGameResult(result) {
+    logResultGuideMessage();
+
+    const { roundHistory, winnerNames } = result;
+
+    roundHistory.forEach((round) => {
+      logRoundRecord(round);
+    });
+
+    logWinnerNames(winnerNames);
+  }
+
+  function logErrorMessage(errorMsg) {
+    log("[ERROR]", errorMsg);
+  }
+
+  return {
+    getInputsThen,
+    close,
+    logErrorMessage,
+    logGameResult,
+  };
+})();

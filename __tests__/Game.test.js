@@ -1,69 +1,63 @@
-import Game from "../src/Models/Game";
-import Car from "../src/Models/Car";
+import { Cars } from "../src/Models/Cars";
+import { Game } from "../src/Models/Game";
+import { MoveStrategies } from "../src/Models/MoveStrategy";
 
-const GAME_INIT_ROUND = Game.INITIAL_ROUND;
-const TOTAL_GAME_ROUNDS = Game.TOTAL_ROUNDS;
-const INPUT_ERROR_MESSAGE = Game.ERROR_MESSAGE;
-
-const CAR_ERROR_MESSAGE = Car.ERROR_MESSAGE;
-
-describe("[feature1] 사용자가 유효한 값을 입력하는지 검증한다.", () => {
-  describe("사용자가 유효하지 않은 값을 입력하면, 에러를 반환한다.", () => {
-    it("사용자 입력이 빈 값인 경우, 에러를 발생시킨다.", () => {
-      expect(() => new Game("")).toThrow(INPUT_ERROR_MESSAGE.EMPTY);
-    });
-
-    it.each([
-      "car1,   car2, car1,    car3, car2   ",
-      "12345, aBcDe, !*_,     !*_, aBcDe",
-      "test1, Test2, tEsT1, test1, TeSt1",
-      "name1, name2, name1, name3, name2",
-    ])("사용자 입력에 중복된 자동차명이 있는 경우 - %s", (input) => {
-      expect(() => new Game(input)).toThrow(
-        INPUT_ERROR_MESSAGE.DUPLICATE_CAR_NAME
-      );
-    });
-
-    it.each([
-      {
-        name: "쉼표만 있는 값",
-        input: ",",
-        expected: INPUT_ERROR_MESSAGE.DUPLICATE_CAR_NAME,
-      },
-      {
-        name: "쉼표가 연속으로 있는 값",
-        input: "a,,   b, c",
-        expected: CAR_ERROR_MESSAGE.EMPTY_NAME,
-      },
-      {
-        name: "쉼표로 시작하는 값",
-        input: ",a,b,c",
-        expected: CAR_ERROR_MESSAGE.EMPTY_NAME,
-      },
-      {
-        name: "쉼표로 끝나는 값",
-        input: "a, b, c,",
-        expected: CAR_ERROR_MESSAGE.EMPTY_NAME,
-      },
-    ])(
-      "사용자 입력이 $name인 경우, 에러를 발생시킨다.",
-      ({ input, expected }) => {
-        expect(() => new Game(input)).toThrow(expected);
+const DEFAULT_TOTAL_ROUNDS = 5;
+describe("게임 설정 테스트", () => {
+  describe("유효하지 않은 값을 입력한 경우", () => {
+    it.each(["", null, undefined, " "])(
+      "자동차 이름이 빈 값인 경우, 에러를 발생시킨다.",
+      (carNamesInput) => {
+        expect(() => Game.setGame(carNamesInput, DEFAULT_TOTAL_ROUNDS)).toThrow(
+          Game.ERROR_MESSAGE.EMPTY
+        );
       }
     );
 
-    it("사용자 입력에 5글자 이상인 자동차 이름이 있는 경우, 에러를 발생시킨다.", () => {
-      expect(() => new Game("aaaaa, bbbbbb,cccccc")).toThrow(
-        CAR_ERROR_MESSAGE.LONG_NAME
-      );
-    });
+    it.each(["", null, undefined, " "])(
+      "시도 횟수가 빈 값인 경우, 에러를 발생시킨다.",
+      (roundsInput) => {
+        expect(() => Game.setGame("erica", roundsInput)).toThrow(
+          Game.ERROR_MESSAGE.EMPTY
+        );
+      }
+    );
+
+    it.each(["12@", "123456*", "12ab", "abcde", "-12a"])(
+      "시도 횟수가 숫자 형태가 아닌 경우, 에러를 발생시킨다.",
+      (roundsInput) => {
+        expect(() => Game.setGame("erica", roundsInput)).toThrow(
+          Game.ERROR_MESSAGE.NOT_NUMBER
+        );
+      }
+    );
+
+    it.each([1.5, 0.5, 1.03])(
+      "시도 횟수가 정수가 아닌 경우, 에러를 발생시킨다.",
+      (roundsInput) => {
+        expect(() => Game.setGame("erica", roundsInput)).toThrow(
+          Game.ERROR_MESSAGE.NOT_INTEGER
+        );
+      }
+    );
+
+    it.each([-10, -1, 0])(
+      "시도 횟수가 양의 정수가 아닌 경우, 에러를 발생시킨다.",
+      (roundsInput) => {
+        expect(() => Game.setGame("erica", roundsInput)).toThrow(
+          Game.ERROR_MESSAGE.NOT_POSITIVE
+        );
+      }
+    );
   });
 
-  describe("사용자가 유효한 값을 입력하면, 정상 동작한다.", () => {
+  describe("유효한 값을 입력한 경우", () => {
     it.each(["e", "er", "eri", "eric", "erica", "  _", "!!! "])(
-      "쉼표 없이 자동차명만 입력한 경우 - %s",
-      (input) => {
-        expect(() => new Game(input)).not.toThrow();
+      "자동차 이름을 하나만 입력한 경우",
+      (userInput) => {
+        expect(() =>
+          Game.setGame(userInput, DEFAULT_TOTAL_ROUNDS)
+        ).not.toThrow();
       }
     );
 
@@ -73,30 +67,77 @@ describe("[feature1] 사용자가 유효한 값을 입력하는지 검증한다.
       "12345, aBcDe, !*_",
       "test1, Test2, tEsT1, test2, TeSt1",
       "name1, name2, name3, name4, name5",
-    ])("쉼표를 사용하여 여러 자동차명을 기입한 경우 - %s", (input) => {
-      expect(() => new Game(input)).not.toThrow();
+    ])("중복 없이 자동차 이름을 여러 개 입력한 경우", (userInput) => {
+      expect(() => Game.setGame(userInput, DEFAULT_TOTAL_ROUNDS)).not.toThrow();
     });
   });
 });
 
-describe("[feature4] 총 5라운드를 반복하고, 우승 자동차 정보를 반환한다.", () => {
-  const VALID_INPUT = "yun,yang,erica,star";
-  const game = new Game(VALID_INPUT);
+describe(`게임을 총 ${DEFAULT_TOTAL_ROUNDS}라운드 진행한다.`, () => {
+  const CAR_NAMES_INPUT = "erica, Erica, ryang, yang, theon";
+  const spyPlayOneRound = jest.spyOn(Cars, "playOneRound");
 
-  it("게임 컨트롤러는 Car 객체를 갖는 배열, View 객체, 현재 라운드, 우승자 배열을 상태값으로 갖는다.", () => {
-    expect(game.cars).toBeInstanceOf(Array);
-    expect(game.currRound).toBeDefined();
-    expect(game.currRound).toBe(GAME_INIT_ROUND);
-    expect(game.winners).toBeInstanceOf(Array);
+  beforeAll(() => {
+    Game.setGame(CAR_NAMES_INPUT, DEFAULT_TOTAL_ROUNDS);
+    Game.playGame(new MoveStrategies("50011"));
   });
 
-  it("다섯 라운드가 진행된다.", () => {
-    game.play();
-    expect(game.currRound - 1).toBe(TOTAL_GAME_ROUNDS);
+  afterAll(() => {
+    spyPlayOneRound.mockClear();
   });
 
-  it("배열 형태로 우승자 정보를 반환한다.", () => {
-    expect(game.winners).toBeInstanceOf(Array);
-    expect(game.winners.length).toBeGreaterThan(0);
+  it("각 라운드를 진행하는 함수를 5번 호출한다.", () => {
+    expect(spyPlayOneRound).toBeCalledTimes(DEFAULT_TOTAL_ROUNDS);
   });
+
+  it("각 라운드 별 기록을 올바르게 roundHistory에 저장한다.", () => {
+    const carNames = CAR_NAMES_INPUT.split(",").map((carName) =>
+      carName.trim()
+    );
+    const expectedRoundHistory = carNames.map((carName) => ({
+      name: carName,
+      position: 0,
+    }));
+
+    const gameResult = Game.getGameResult();
+
+    gameResult.roundHistory.forEach((roundRecord) => {
+      expectedRoundHistory[0].position += 1;
+      expect(roundRecord).toEqual(expectedRoundHistory);
+    });
+
+    expect(gameResult.roundHistory.length).toBe(DEFAULT_TOTAL_ROUNDS);
+  });
+
+  it("우승자가 한 명인 경우, 올바른 우승자를 찾는다.", () => {
+    expect(Game.getGameResult().winnerNames).toEqual(["erica"]);
+  });
+});
+
+describe("우승자 판단 테스트", () => {
+  const CAR_NAMES_INPUT = "erica, Erica, ryang, yang, theon";
+
+  it("우승자가 한 명인 경우, 올바른 우승자를 반환한다.", () => {
+    Game.setGame(CAR_NAMES_INPUT, DEFAULT_TOTAL_ROUNDS);
+    Game.playGame(new MoveStrategies("50000"));
+    const gameResult = Game.getGameResult();
+    expect(gameResult.winnerNames).toEqual(["erica"]);
+  });
+
+  it.each(["55000", "55500", "55500", "55550", "55555"])(
+    "우승자가 두 명 이상인 경우, 올바른 우승자를 반환한다.",
+    (str) => {
+      Game.setGame(CAR_NAMES_INPUT, DEFAULT_TOTAL_ROUNDS);
+      Game.playGame(new MoveStrategies(str));
+      const gameResult = Game.getGameResult();
+
+      const carNames = CAR_NAMES_INPUT.split(",").map((carName) =>
+        carName.trim()
+      );
+      const expectedWinnerNames = carNames.filter(
+        (_, index) => str[index] === "5"
+      );
+      expect(gameResult.winnerNames).toEqual(expectedWinnerNames);
+    }
+  );
 });

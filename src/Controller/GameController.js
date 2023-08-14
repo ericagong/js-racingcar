@@ -1,57 +1,36 @@
-import PromptView from "../View/PromptView";
-import Game from "../Models/Game";
+import { Game } from "../Models/Game";
+import { PromptView } from "../View/PromptView";
 
-export default class GameController {
-  #view;
-  #game;
-
-  constructor() {
-    this.#view = new PromptView();
-    this.#addEventHandlerToView();
+export const GameController = (function () {
+  function addEventHandlerToPrompt() {
+    PromptView.getInputsThen(playGame);
   }
 
-  get view() {
-    return this.#view;
+  function handleResult(result) {
+    PromptView.logGameResult(result);
   }
 
-  get game() {
-    return this.#game;
+  function handleError(error) {
+    PromptView.logErrorMessage(error.message);
   }
 
-  #addEventHandlerToView() {
-    const promptEventHandler = (userInput) => this.#playGameWith(userInput);
-    this.#view.addEventHandlerToPrompt(promptEventHandler);
-  }
-
-  #playGameWith(userInput) {
+  function playGame(carNames, totalRounds) {
     try {
-      this.#setUpGame(userInput);
-      this.#startGame();
-      this.#printGameResult();
+      Game.setGame(carNames, totalRounds);
+      Game.playGame();
+      handleResult(Game.getGameResult());
+      terminateGame();
     } catch (error) {
-      this.#printError(error);
+      handleError(error);
+      addEventHandlerToPrompt();
     }
   }
 
-  #setUpGame(userInput) {
-    this.#game = new Game(userInput);
+  function terminateGame() {
+    PromptView.close();
   }
 
-  #startGame() {
-    this.#game.play();
-  }
-
-  #printGameResult() {
-    this.#view.logResultGuideMessage();
-
-    this.#game.roundHistory.forEach((roundCarsInfo) => {
-      this.#view.logRoundStatus(roundCarsInfo);
-    });
-
-    this.#view.logWinners(this.#game.winners);
-  }
-
-  #printError(error) {
-    this.#view.logErrorMessage(error.message);
-  }
-}
+  return {
+    addEventHandlerToPrompt,
+  };
+})();
