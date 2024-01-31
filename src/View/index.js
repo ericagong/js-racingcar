@@ -1,6 +1,11 @@
-import { readLineInterface } from "../utils";
+import readline from "readline";
 
-export const PromptView = (function () {
+const readlineInterface = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+export const createView = () => {
   const GUIDE_MESSAGES = Object.freeze({
     CAR_NAMES_INPUT:
       "경주할 자동차 이름을 입력하세요(이름은 쉼표(,) 기준으로 구분).\n",
@@ -8,25 +13,25 @@ export const PromptView = (function () {
     RESULT: "실행 결과",
   });
 
-  async function readLineFromPrompt(guideMessage) {
+  async function readlineFromConsole(guideMessage) {
     return new Promise((resolve) => {
-      readLineInterface.question(guideMessage, resolve);
+      readlineInterface.question(guideMessage, resolve);
     });
   }
 
-  async function getInputsThen(cbFunc) {
-    const carNamesInput = await readLineFromPrompt(
+  async function addEventHandlerToView(cbFunc) {
+    const carNamesInput = await readlineFromConsole(
       GUIDE_MESSAGES.CAR_NAMES_INPUT
     );
-    const roundsInput = await readLineFromPrompt(
+    const roundsInput = await readlineFromConsole(
       GUIDE_MESSAGES.TOTAL_ROUNDS_INPUT
     );
 
     cbFunc(carNamesInput, roundsInput);
   }
 
-  function close() {
-    readLineInterface.close();
+  function closeView() {
+    readlineInterface.close();
   }
 
   const log = console.log;
@@ -74,9 +79,9 @@ export const PromptView = (function () {
   }
 
   return {
-    getInputsThen,
-    close,
+    addEventHandlerToView,
+    closeView,
     logErrorMessage,
     logGameResult,
   };
-})();
+};
